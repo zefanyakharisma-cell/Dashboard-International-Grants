@@ -44,28 +44,31 @@ export function openGrantForm(id) {
   ).join('');
 
   $('#grant-form-body').innerHTML = `
-    <form id="grant-form" class="p-6 space-y-4">
+    <form id="grant-form" class="p-6 space-y-4" novalidate>
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-bold">${id?'Edit grant':'Add new grant'}</h2>
         <button type="button" class="btn btn-ghost" id="close-form"><i data-lucide="x"></i></button>
       </div>
 
+      <div id="grant-form-error" class="hidden p-3 rounded border border-rose-300 bg-rose-50 text-rose-700 text-xs dark:bg-rose-900/30 dark:border-rose-700 dark:text-rose-200 whitespace-pre-wrap font-mono"></div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div class="md:col-span-2"><label class="text-xs font-semibold">Title</label><input class="input mt-1" name="title" value="${esc(g.title)}" required></div>
-        <div><label class="text-xs font-semibold">Funding Organization</label><input class="input mt-1" name="organization" value="${esc(g.organization)}" required></div>
-        <div><label class="text-xs font-semibold">Country</label><input class="input mt-1" name="country" value="${esc(g.country)}" required></div>
+        <div class="md:col-span-2"><label class="text-xs font-semibold">Title</label><input class="input mt-1" name="title" value="${esc(g.title)}"></div>
+        <div><label class="text-xs font-semibold">Funding Organization</label><input class="input mt-1" name="organization" value="${esc(g.organization)}"></div>
+        <div><label class="text-xs font-semibold">Country</label><input class="input mt-1" name="country" value="${esc(g.country)}"></div>
         <div>
           <label class="text-xs font-semibold">Category</label>
-          <select class="select mt-1" name="category">${state.categories.map(c => `<option ${g.category===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
+          <input class="input mt-1" name="category" value="${esc(g.category||'')}" list="category-options" placeholder="Type or pick a category">
+          <datalist id="category-options">${state.categories.map(c => `<option value="${esc(c)}"></option>`).join('')}</datalist>
         </div>
         <div>
           <label class="text-xs font-semibold">Deadline</label>
-          <input class="input mt-1" type="date" name="deadline" value="${esc(g.deadline||'')}" required>
+          <input class="input mt-1" type="date" name="deadline" value="${esc(g.deadline||'')}">
         </div>
         <div><label class="text-xs font-semibold">Currency</label><input class="input mt-1" name="currency" value="${esc(g.currency)}" placeholder="USD"></div>
         <div><label class="text-xs font-semibold">Amount</label><input class="input mt-1" type="number" step="0.01" name="amount" value="${g.amount||0}"></div>
         <div class="md:col-span-2"><label class="text-xs font-semibold">Amount note</label><input class="input mt-1" name="amountNote" value="${esc(g.amountNote||'')}"></div>
-        <div class="md:col-span-2"><label class="text-xs font-semibold">Description</label><textarea class="textarea mt-1" name="description" rows="3" required>${esc(g.description)}</textarea></div>
+        <div class="md:col-span-2"><label class="text-xs font-semibold">Description</label><textarea class="textarea mt-1" name="description" rows="3">${esc(g.description)}</textarea></div>
         <div class="md:col-span-2"><label class="text-xs font-semibold">Eligibility</label><textarea class="textarea mt-1" name="eligibility" rows="2">${esc(g.eligibility)}</textarea></div>
         <div><label class="text-xs font-semibold">Website URL</label><input class="input mt-1" name="website" value="${esc(g.website)}" placeholder="https://"></div>
         <div><label class="text-xs font-semibold">Contact email</label><input class="input mt-1" name="contactEmail" value="${esc(g.contactEmail)}"></div>
@@ -137,7 +140,8 @@ export function openGrantForm(id) {
       rerenderAttachmentsList();
       toast('Attachment uploaded', 'success');
     } catch (err) {
-      toast(`Upload failed: ${err.message}`, 'error');
+      console.error('[grant-form] attachment upload failed', err);
+      toast(`Upload failed: ${err.message || err.code || 'unknown'} ${err.statusCode ? `(${err.statusCode})` : ''}`, 'error');
     } finally {
       e.target.value = '';
     }
@@ -153,52 +157,91 @@ export function openGrantForm(id) {
     refreshIcons();
   }
 
+  const errorBox = $('#grant-form-error');
+  const showError = (label, err) => {
+    const parts = [`${label}:`];
+    if (err && typeof err === 'object') {
+      if (err.message) parts.push(`message: ${err.message}`);
+      if (err.code)    parts.push(`code:    ${err.code}`);
+      if (err.details) parts.push(`details: ${err.details}`);
+      if (err.hint)    parts.push(`hint:    ${err.hint}`);
+      if (err.status)  parts.push(`status:  ${err.status}`);
+      if (!err.message && !err.code) parts.push(JSON.stringify(err, null, 2));
+    } else {
+      parts.push(String(err));
+    }
+    errorBox.textContent = parts.join('\n');
+    errorBox.classList.remove('hidden');
+    errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    console.error('[grant-form]', label, err);
+    toast(`${label}: ${err?.message || err?.code || 'see form for details'}`, 'error');
+  };
+
   $('#grant-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const fd = new FormData(e.target);
-
-    // Add the optional manual attachment row (Name | URL)
-    const extra = String(fd.get('extraAttachment') || '').trim();
-    if (extra) {
-      const [name, url] = extra.split('|').map(s => s.trim());
-      if (name && url) workingAttachments.push({ name, url });
-    }
-
-    const facultyIds   = $$('input[data-fac]', e.target).filter(i => i.checked).map(i => i.dataset.fac);
-    const programIds   = $$('input[data-prog]', e.target).filter(i => i.checked).map(i => i.dataset.prog);
-    const degreeLevels = $$('input[data-deg]', e.target).filter(i => i.checked).map(i => i.dataset.deg);
-
-    const payload = {
-      title:        fd.get('title').trim(),
-      organization: fd.get('organization').trim(),
-      country:      fd.get('country').trim(),
-      category:     fd.get('category'),
-      currency:     fd.get('currency').trim() || 'USD',
-      amount:       parseFloat(fd.get('amount')) || 0,
-      amountNote:   fd.get('amountNote').trim(),
-      deadline:     fd.get('deadline'),
-      description:  fd.get('description').trim(),
-      eligibility:  fd.get('eligibility').trim(),
-      website:      fd.get('website').trim(),
-      contactEmail: fd.get('contactEmail').trim(),
-      tags:         String(fd.get('tags') || '').split(',').map(t => t.trim()).filter(Boolean),
-      attachments:  workingAttachments,
-      facultyIds, programIds, degreeLevels,
-      archived:     !!fd.get('archived')
-    };
+    errorBox.classList.add('hidden');
+    errorBox.textContent = '';
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
 
     try {
-      const saved = id
-        ? await updateGrant(id, payload)
-        : await createGrant(payload);
-      await logActivity(id ? 'edit' : 'create',
-        `${id?'Updated':'Created'} grant "${saved.title}"`, saved.id);
+      const fd = new FormData(e.target);
+
+      const extra = String(fd.get('extraAttachment') || '').trim();
+      if (extra) {
+        const [name, url] = extra.split('|').map(s => s.trim());
+        if (name && url) workingAttachments.push({ name, url });
+      }
+
+      const facultyIds   = $$('input[data-fac]', e.target).filter(i => i.checked).map(i => i.dataset.fac);
+      const programIds   = $$('input[data-prog]', e.target).filter(i => i.checked).map(i => i.dataset.prog);
+      const degreeLevels = $$('input[data-deg]', e.target).filter(i => i.checked).map(i => i.dataset.deg);
+
+      const payload = {
+        title:        String(fd.get('title') || '').trim(),
+        organization: String(fd.get('organization') || '').trim(),
+        country:      String(fd.get('country') || '').trim(),
+        category:     String(fd.get('category') || '').trim(),
+        currency:     String(fd.get('currency') || '').trim() || 'USD',
+        amount:       parseFloat(fd.get('amount')) || 0,
+        amountNote:   String(fd.get('amountNote') || '').trim(),
+        deadline:     fd.get('deadline') || null,
+        description:  String(fd.get('description') || '').trim(),
+        eligibility:  String(fd.get('eligibility') || '').trim(),
+        website:      String(fd.get('website') || '').trim(),
+        contactEmail: String(fd.get('contactEmail') || '').trim(),
+        tags:         String(fd.get('tags') || '').split(',').map(t => t.trim()).filter(Boolean),
+        attachments:  workingAttachments,
+        facultyIds, programIds, degreeLevels,
+        archived:     !!fd.get('archived')
+      };
+
+      console.log('[grant-form] submitting payload', payload);
+
+      let saved;
+      try {
+        saved = id
+          ? await updateGrant(id, payload)
+          : await createGrant(payload);
+      } catch (dbErr) {
+        showError(id ? 'Update failed' : 'Create failed', dbErr);
+        return;
+      }
+
+      try {
+        await logActivity(id ? 'edit' : 'create',
+          `${id?'Updated':'Created'} grant "${saved.title}"`, saved.id);
+      } catch (logErr) {
+        console.warn('[grant-form] activity log failed (grant was saved)', logErr);
+      }
+
       toast(id ? 'Grant updated' : 'Grant created', 'success');
       closeForm();
-      // Realtime will refresh state.grants but trigger an immediate re-render too.
       render();
     } catch (err) {
-      toast(err.message || 'Save failed', 'error');
+      showError('Unexpected error', err);
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
   });
 }
