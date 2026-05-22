@@ -34,7 +34,7 @@ const url    = process.env.SUPABASE_URL;
 const anon   = process.env.SUPABASE_ANON_KEY;
 const page   = parseInt(process.env.APP_PAGE_SIZE || '9', 10);
 const close  = parseInt(process.env.APP_CLOSING_SOON_DAYS || '7', 10);
-const bucket = process.env.APP_ATTACHMENTS_BUCKET || 'grant-attachments';
+const bucket = process.env.APP_ATTACHMENTS_BUCKET || 'petra-grant-attachments';
 
 const out = `// AUTO-GENERATED at build time by scripts/inject-env.js — do not commit manual edits.
 export const SUPABASE_URL      = ${JSON.stringify(url)};

@@ -5,7 +5,7 @@
 -- ============================================================
 
 -- Faculties
-insert into public.faculties (id, name) values
+insert into petra_grants.faculties (id, name) values
   ('fcep',  'Faculty of Civil Engineering and Planning'),
   ('fit',   'Faculty of Industrial Technology'),
   ('sbm',   'School of Business and Management'),
@@ -16,7 +16,7 @@ insert into public.faculties (id, name) values
 on conflict (id) do update set name = excluded.name;
 
 -- Programs
-insert into public.programs (id, faculty_id, name, degree) values
+insert into petra_grants.programs (id, faculty_id, name, degree) values
   -- FCEP
   ('ce',    'fcep', 'Civil Engineering', 'Undergraduate'),
   ('arch',  'fcep', 'Architecture', 'Undergraduate'),
@@ -82,7 +82,7 @@ insert into public.programs (id, faculty_id, name, degree) values
 on conflict (id) do update set name = excluded.name, faculty_id = excluded.faculty_id, degree = excluded.degree;
 
 -- Categories
-insert into public.categories (name) values
+insert into petra_grants.categories (name) values
   ('Research Grants'),
   ('Student Exchange Funding'),
   ('Lecturer Mobility Grants'),
@@ -94,7 +94,7 @@ insert into public.categories (name) values
 on conflict (name) do nothing;
 
 -- Sample grants (only seed if table is empty so we never overwrite real data)
-insert into public.grants
+insert into petra_grants.grants
   (title, organization, country, category, amount, currency, amount_note, deadline,
    description, eligibility, website, contact_email, tags, attachments,
    faculty_ids, program_ids, degree_levels, archived)
@@ -165,13 +165,13 @@ select * from (values
 ) as t(title, organization, country, category, amount, currency, amount_note, deadline,
        description, eligibility, website, contact_email, tags, attachments,
        faculty_ids, program_ids, degree_levels, archived)
-where not exists (select 1 from public.grants);
+where not exists (select 1 from petra_grants.grants);
 
 -- ============================================================
 -- After running this file, create your first admin via the
 -- Supabase Auth dashboard (Authentication → Users → Add user),
 -- then run this snippet (replace the email) to promote them:
 --
---   update public.profiles set role = 'admin'
+--   update petra_grants.profiles set role = 'admin'
 --   where email = 'you@petra.ac.id';
 -- ============================================================

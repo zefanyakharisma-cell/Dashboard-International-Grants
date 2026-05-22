@@ -1,5 +1,5 @@
 /**
- * Realtime subscription to the public.grants table.
+ * Realtime subscription to the petra_grants.grants table.
  *
  * Patches `state.grants` in place on INSERT/UPDATE/DELETE so the public
  * dashboard re-renders the moment an admin changes anything (without
@@ -16,9 +16,9 @@ export function subscribeGrantsRealtime() {
   if (channel) return channel;
 
   channel = supabase
-    .channel('public:grants')
+    .channel('petra_grants:grants')
     .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'grants' },
+      { event: '*', schema: 'petra_grants', table: 'grants' },
       (payload) => {
         if (payload.eventType === 'INSERT') {
           state.grants = [fromRow(payload.new), ...state.grants];
@@ -31,7 +31,7 @@ export function subscribeGrantsRealtime() {
         notify();
       })
     .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'categories' },
+      { event: '*', schema: 'petra_grants', table: 'categories' },
       async () => {
         const { listCategories } = await import('./categories.js');
         try { state.categories = await listCategories(); notify(); } catch {}

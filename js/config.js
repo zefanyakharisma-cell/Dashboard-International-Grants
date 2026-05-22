@@ -21,6 +21,8 @@ export const APP_CONFIG = {
   closingSoonDays: 7,
   // Page size for the public grants browser
   pageSize: 9,
-  // Storage bucket name (must match what you created in Supabase Storage)
-  attachmentsBucket: 'grant-attachments'
+  // Storage bucket name (must match what you created in Supabase Storage).
+  // Prefixed with `petra-` because Supabase Storage buckets are project-wide
+  // and we're sharing this project with other apps.
+  attachmentsBucket: 'petra-grant-attachments'
 };

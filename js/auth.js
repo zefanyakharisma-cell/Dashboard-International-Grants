@@ -8,7 +8,7 @@
  *   - getCurrentUser()  → current cached user object
  *
  * A "user" here is { id, email, fullName, role }. The role comes
- * from public.profiles which is auto-created by a Postgres trigger.
+ * from petra_grants.profiles which is auto-created by a Postgres trigger.
  */
 
 import { supabase } from './supabaseClient.js';
