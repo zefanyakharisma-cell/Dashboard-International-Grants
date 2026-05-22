@@ -11,8 +11,8 @@
  * and the `vercel-build` script (see vercel.json) will overwrite this file
  * at build time so you don't have to commit production credentials.
  */
-export const SUPABASE_URL      = 'https://YOUR-PROJECT-REF.supabase.co';
-export const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY';
+export const SUPABASE_URL      = 'https://xrzwjwaaayeoizmabchj.supabase.co';
+export const SUPABASE_ANON_KEY = 'sb_publishable_QznNbgBFWibdv6eDosc2jQ_ZjwJMu8g';
 
 export const APP_CONFIG = {
   name: 'Petra International Grants',
