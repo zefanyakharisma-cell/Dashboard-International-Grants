@@ -58,8 +58,10 @@ export function openGrantForm(id) {
         <div><label class="text-xs font-semibold">Country</label><input class="input mt-1" name="country" value="${esc(g.country)}"></div>
         <div>
           <label class="text-xs font-semibold">Category</label>
-          <input class="input mt-1" name="category" value="${esc(g.category||'')}" list="category-options" placeholder="Type or pick a category">
-          <datalist id="category-options">${state.categories.map(c => `<option value="${esc(c)}"></option>`).join('')}</datalist>
+          <select class="select mt-1" name="category">
+            ${state.categories.map(c => `<option value="${esc(c)}" ${g.category===c?'selected':''}>${esc(c)}</option>`).join('')}
+            ${g.category && !state.categories.includes(g.category) ? `<option value="${esc(g.category)}" selected>${esc(g.category)}</option>` : ''}
+          </select>
         </div>
         <div>
           <label class="text-xs font-semibold">Deadline</label>
